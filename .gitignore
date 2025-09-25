@@ -1,0 +1,10 @@
+# Maven
+framework/target/
+test/target/
+
+# fichiers compilés
+*.class
+*.jar
+
+# logs et temporaires
+*.log
