@@ -18,7 +18,7 @@ public class AnnotationRunner {
 
                 // Affiche le nom de la méthode et la valeur de l'annotation
                 System.out.println("Exécution automatique de la méthode : " + method.getName());
-                System.out.println("Valeur : " + annotation.valeur());
+                System.out.println("Valeur : " + annotation.url());
 
                 // Exécute la méthode
                 method.invoke(obj);
