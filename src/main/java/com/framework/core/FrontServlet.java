@@ -2,6 +2,13 @@ package com.framework.core;
 
 
 import java.io.*;
+import java.lang.reflect.Method;
+import java.util.List;
+
+import com.framework.annotation.AnnotationScanner;
+import com.framework.annotation.AppClass;
+import com.framework.annotation.MonAnnotation;
+
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.*;
 import jakarta.servlet.http.*;
@@ -29,16 +36,51 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
+
     private void customServe(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        try (PrintWriter out = res.getWriter()) {
-            String url = req.getRequestURI();
-            res.setContentType("text/html;charset=UTF-8");
-            out.println("<html><head><title>FrontServlet</title></head><body>");
-            out.println("<h1>URL demandée : " + url + "</h1>");
-            out.println("<p>Ceci est le FrontServlet. Aucune ressource trouvée pour cette URL.</p>");
+
+        res.setContentType("text/html;charset=UTF-8");
+        res.setCharacterEncoding("UTF-8");
+        PrintWriter out = res.getWriter();
+
+        String url = req.getPathInfo();
+        if (url == null) {
+            url = req.getRequestURI().substring(req.getContextPath().length());
+        }
+
+        boolean found = false;
+
+        // 🔍 Scanner les classes annotées @AppClass dans ton package test
+        List<Class<?>> annotatedClasses = AnnotationScanner.getAnnotatedClasses("com.test", AppClass.class);
+
+        for (Class<?> clazz : annotatedClasses) {
+            Method method = AnnotationScanner.findMethodByUrl(clazz, MonAnnotation.class, url);
+            if (method != null) {
+                try {
+                    Object instance = clazz.getDeclaredConstructor().newInstance();
+                    Object result = method.invoke(instance);
+
+                    out.println("<html><body>");
+                    out.println("<h3>Classe : " + clazz.getSimpleName() + "</h3>");
+                    out.println("<h4>Methode : " + method.getName() + "</h4>");
+                    out.println("<p>Resultat : " + (result != null ? result : "(aucun retour)") + "</p>");
+                    out.println("</body></html>");
+                    found = true;
+                    break;
+                } catch (Exception e) {
+                    e.printStackTrace(out);
+                }
+            }
+        }
+
+        if (!found) {
+            out.println("<html><body>");
+            out.println("<p>Aucune methode ni classe associee a cette URL : " + url + "</p>");
             out.println("</body></html>");
         }
     }
+
+
 
     private void defaultServe(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         defaultDispatcher.forward(req, res);
