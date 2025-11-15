@@ -7,6 +7,6 @@ import java.lang.annotation.ElementType;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface MonAnnotation {
+public @interface URL {
     String url(); // <- c’est cette URL que FrontServlet utilisera
 }

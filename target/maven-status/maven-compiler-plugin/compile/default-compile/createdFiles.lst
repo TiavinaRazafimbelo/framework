@@ -1,5 +1,6 @@
 com\framework\annotation\AnnotationRunner.class
+com\framework\core\ModelView.class
+com\framework\annotation\Controller.class
+com\framework\annotation\URL.class
 com\framework\core\FrontServlet.class
 com\framework\annotation\AnnotationScanner.class
-com\framework\annotation\AppClass.class
-com\framework\annotation\MonAnnotation.class
