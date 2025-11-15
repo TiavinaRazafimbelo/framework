@@ -76,9 +76,19 @@ public class FrontServlet extends HttpServlet {
                         ModelView mv = (ModelView) result;
                         String viewName = mv.getView();
 
+                        // Injecter les données dans la requête
+                        for (String key : mv.getData().keySet()) {
+                            req.setAttribute(key, mv.getData().get(key));
+                        }
+
                         // Forward vers JSP
                         RequestDispatcher dispatcher = req.getRequestDispatcher("/views/" + viewName);
-                        dispatcher.forward(req, res);
+                        try {                  
+                            dispatcher.forward(req, res);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        
                         return;
                     }
 
