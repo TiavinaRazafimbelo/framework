@@ -12,9 +12,9 @@ public class AnnotationRunner {
         // Parcourt toutes les méthodes de la classe
         for (Method method : clazz.getDeclaredMethods()) {
             // Vérifie si la méthode possède l'annotation MonAnnotation
-            if (method.isAnnotationPresent(MonAnnotation.class)) {
+            if (method.isAnnotationPresent(URL.class)) {
                 // Récupère l'annotation
-                MonAnnotation annotation = method.getAnnotation(MonAnnotation.class);
+                URL annotation = method.getAnnotation(URL.class);
 
                 // Affiche le nom de la méthode et la valeur de l'annotation
                 System.out.println("Exécution automatique de la méthode : " + method.getName());

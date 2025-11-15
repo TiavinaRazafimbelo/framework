@@ -6,8 +6,8 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 import com.framework.annotation.AnnotationScanner;
-import com.framework.annotation.AppClass;
-import com.framework.annotation.MonAnnotation;
+import com.framework.annotation.Controller;
+import com.framework.annotation.URL;
 
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.*;
@@ -37,11 +37,10 @@ public class FrontServlet extends HttpServlet {
     }
 
 
-    private void customServe(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    private void customServe(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
 
-        res.setContentType("text/html;charset=UTF-8");
+        res.setContentType("text/html; charset=UTF-8");
         res.setCharacterEncoding("UTF-8");
-        PrintWriter out = res.getWriter();
 
         String url = req.getPathInfo();
         if (url == null) {
@@ -50,35 +49,57 @@ public class FrontServlet extends HttpServlet {
 
         boolean found = false;
 
-        // 🔍 Scanner les classes annotées @AppClass dans ton package test
-        List<Class<?>> annotatedClasses = AnnotationScanner.getAnnotatedClasses("com.test", AppClass.class);
+        // 1 – Récupérer les classes annotées @AppClass dans le projet test
+        List<Class<?>> annotatedClasses = AnnotationScanner.getAnnotatedClasses("com.test.controllers", Controller.class);
 
         for (Class<?> clazz : annotatedClasses) {
-            Method method = AnnotationScanner.findMethodByUrl(clazz, MonAnnotation.class, url);
+
+            // 2 – Trouver la méthode correspondant à l'URL via ton annotation (@MonAnnotation)
+            Method method = AnnotationScanner.findMethodByUrl(clazz, URL.class, url);
+
             if (method != null) {
+                found = true;
+
                 try {
                     Object instance = clazz.getDeclaredConstructor().newInstance();
+
+                    // 3 – Exécution de la méthode du contrôleur
                     Object result = method.invoke(instance);
 
-                    out.println("<html><body>");
-                    out.println("<h3>Classe : " + clazz.getSimpleName() + "</h3>");
-                    out.println("<h4>Methode : " + method.getName() + "</h4>");
-                    out.println("<p>Resultat : " + (result != null ? result : "(aucun retour)") + "</p>");
-                    out.println("</body></html>");
-                    found = true;
-                    break;
+                    // 4 – Gestion selon type retour
+                    if (result instanceof String) {
+                        res.getWriter().print((String) result);
+                        return;
+                    }
+
+                    else if (result instanceof ModelView) {
+                        ModelView mv = (ModelView) result;
+                        String viewName = mv.getView();
+
+                        // Forward vers JSP
+                        RequestDispatcher dispatcher = req.getRequestDispatcher("/views/" + viewName);
+                        dispatcher.forward(req, res);
+                        return;
+                    }
+
+                    else {
+                        res.getWriter().println("⚠️ Type de retour non supporté : " + result);
+                        return;
+                    }
+
                 } catch (Exception e) {
-                    e.printStackTrace(out);
+                    e.printStackTrace(res.getWriter());
+                    return;
                 }
             }
         }
 
+        // 5 – Si aucune méthode trouvée
         if (!found) {
-            out.println("<html><body>");
-            out.println("<p>Aucune methode ni classe associee a cette URL : " + url + "</p>");
-            out.println("</body></html>");
+            res.getWriter().println("<p>Aucune methode ou classe associee à l URL : " + url + "</p>");
         }
     }
+
 
 
 
