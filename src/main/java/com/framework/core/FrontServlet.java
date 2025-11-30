@@ -64,11 +64,53 @@ public class FrontServlet extends HttpServlet {
                     Object instance = clazz.getDeclaredConstructor().newInstance();
 
                     // 3 – Exécution de la méthode du contrôleur
-                    // Sprint 3-ter : on passe null pour tous les paramètres
-                    int paramCount = method.getParameterCount();
-                    Object[] args = new Object[paramCount];  // Tableau rempli de null
-                                    
-                    Object result = method.invoke(instance, args);
+// Sprint 6 : injection sécurisée des arguments depuis request
+java.lang.reflect.Parameter[] params = method.getParameters();
+Object[] args = new Object[params.length];
+
+for (int i = 0; i < params.length; i++) {
+    String paramName = params[i].getName();        // nom réel de l’argument
+    String rawValue = req.getParameter(paramName); // valeur depuis GET/POST
+    Class<?> type = params[i].getType();
+
+    if (rawValue == null || rawValue.isEmpty()) {
+        // Valeur par défaut pour les primitifs
+        if (type == int.class) args[i] = 0;
+        else if (type == double.class) args[i] = 0.0;
+        else if (type == float.class) args[i] = 0f;
+        else if (type == boolean.class) args[i] = false;
+        else args[i] = null; // String ou Integer/Double/Boolean objets
+        continue;
+    }
+
+    try {
+        if (type == String.class) {
+            args[i] = rawValue;
+        } else if (type == int.class || type == Integer.class) {
+            args[i] = Integer.parseInt(rawValue);
+        } else if (type == double.class || type == Double.class) {
+            args[i] = Double.parseDouble(rawValue);
+        } else if (type == float.class || type == Float.class) {
+            args[i] = Float.parseFloat(rawValue);
+        } else if (type == boolean.class || type == Boolean.class) {
+            args[i] = Boolean.parseBoolean(rawValue);
+        } else {
+            args[i] = null; // type non supporté pour l'instant
+        }
+    } catch (Exception e) {
+        // Si conversion échoue → valeur par défaut
+        if (type == int.class || type == Integer.class) args[i] = 0;
+        else if (type == double.class || type == Double.class) args[i] = 0.0;
+        else if (type == float.class || type == Float.class) args[i] = 0f;
+        else if (type == boolean.class || type == Boolean.class) args[i] = false;
+        else args[i] = null;
+    }
+}
+
+// Appel de la méthode avec les arguments sécurisés
+Object result = method.invoke(instance, args);
+
+
 
 
                     // 4 – Gestion selon type retour
