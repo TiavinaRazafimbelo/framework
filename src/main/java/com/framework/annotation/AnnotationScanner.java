@@ -42,23 +42,90 @@ public class AnnotationScanner {
 
 
 
-    public static Method findMethodByUrl(Class<?> clazz, Class<? extends Annotation> annotation, String url) {
-        for (Method method : clazz.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(annotation)) {
-                try {
-                    Annotation ann = method.getAnnotation(annotation);
-                    Method valueMethod = annotation.getMethod("url");
-                    String value = (String) valueMethod.invoke(ann);
-                    if (value.equals(url)) {
-                        return method;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+    public static boolean matchUrl(String mapping, String url) {
+        if (mapping == null || url == null) return false;
+    
+        // enlever "/" final
+        if (mapping.endsWith("/")) mapping = mapping.substring(0, mapping.length() - 1);
+        if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
+    
+        String[] mapParts = mapping.split("/");
+        String[] urlParts = url.split("/");
+    
+        // 📌 Cas spécial sprint3-bis :
+        // "/user" doit matcher "/user/45"
+        if (mapParts.length == urlParts.length - 1) {
+            // mapping = "/user"
+            // url = "/user/45"
+            boolean samePrefix = true;
+            for (int i = 0; i < mapParts.length; i++) {
+                if (!mapParts[i].equals(urlParts[i])) {
+                    samePrefix = false;
+                    break;
                 }
             }
+            if (samePrefix) return true;
         }
-        return null;
+    
+        // Si tailles différentes → pas match
+        if (mapParts.length != urlParts.length) return false;
+    
+        // comparaison segment par segment
+        for (int i = 0; i < mapParts.length; i++) {
+            String m = mapParts[i];
+            String u = urlParts[i];
+        
+            if (m.startsWith("{") && m.endsWith("}")) {
+                continue; // segment dynamique → accepté
+            }
+        
+            if (!m.equals(u)) return false;
+        }
+    
+        return true;
     }
+
+
+
+
+
+    public static Method findMethodByUrl(Class<?> clazz, Class<? extends Annotation> annotation, String url) {
+
+        Method bestMethod = null;
+        boolean foundDynamic = false;
+
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (!method.isAnnotationPresent(annotation)) continue;
+
+            try {
+                Annotation ann = method.getAnnotation(annotation);
+                Method urlMethod = annotation.getMethod("url");
+                String mapping = (String) urlMethod.invoke(ann);
+
+                // 🔍 vérifier si l'URL reçue correspond au mapping
+                if (matchUrl(mapping, url)) {
+
+                    boolean isDynamic = mapping.contains("{");
+
+                    // 📌 priorité au mapping dynamique
+                    if (isDynamic && !foundDynamic) {
+                        bestMethod = method;
+                        foundDynamic = true;
+                    }
+                    // 📌 sinon on prend un mapping simple si aucun autre trouvé
+                    else if (!foundDynamic && bestMethod == null) {
+                        bestMethod = method;
+                    }
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return bestMethod;
+    }
+
 
 
 }
