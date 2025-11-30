@@ -1,7 +1,9 @@
 D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\annotation\Controller.java
 D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\core\ModelView.java
+D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\annotation\GetMapping.java
 D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\core\FrontServlet.java
 D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\annotation\AnnotationScanner.java
 D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\annotation\URL.java
 D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\annotation\AnnotationRunner.java
+D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\annotation\PostMapping.java
 D:\ITU\S5\projet-framework\framework\src\main\java\com\framework\annotation\RequestParam.java

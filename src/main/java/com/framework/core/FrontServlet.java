@@ -12,6 +12,8 @@ import java.util.regex.Pattern;
 
 import com.framework.annotation.AnnotationScanner;
 import com.framework.annotation.Controller;
+import com.framework.annotation.GetMapping;
+import com.framework.annotation.PostMapping;
 import com.framework.annotation.URL;
 
 import jakarta.servlet.*;
@@ -60,7 +62,21 @@ public class FrontServlet extends HttpServlet {
         for (Class<?> clazz : annotatedClasses) {
 
             // 2 – Trouver la méthode correspondant à l'URL via ton annotation (@MonAnnotation)
-            Method method = AnnotationScanner.findMethodByUrl(clazz, URL.class, url);
+            Method method = null;
+
+            // 1️⃣ @URL (ancienne compatibilité)
+            method = AnnotationScanner.findMethodByUrl(clazz, URL.class, url);
+
+            // 2️⃣ Si GET, vérifier @GetMapping
+            if (method == null && "GET".equalsIgnoreCase(req.getMethod())) {
+                method = AnnotationScanner.findMethodByUrl(clazz, com.framework.annotation.GetMapping.class, url);
+            }
+
+            // 3️⃣ Si POST, vérifier @PostMapping
+            if (method == null && "POST".equalsIgnoreCase(req.getMethod())) {
+                method = AnnotationScanner.findMethodByUrl(clazz, com.framework.annotation.PostMapping.class, url);
+            }
+
 
             if (method != null) {
                 found = true;
@@ -73,11 +89,21 @@ public class FrontServlet extends HttpServlet {
                     // Récupération des variables dynamiques de l'URL
                     Parameter[] params = method.getParameters();
                     Object[] args = new Object[params.length];
-                                    
+
                     // Récupérer les variables {var} depuis l'URL
-                    String urlPattern = method.getAnnotation(URL.class).url();
+                    String urlPattern;
+                    if (method.isAnnotationPresent(URL.class)) {
+                        urlPattern = method.getAnnotation(URL.class).url();
+                    } else if (method.isAnnotationPresent(GetMapping.class)) {
+                        urlPattern = method.getAnnotation(GetMapping.class).value();
+                    } else if (method.isAnnotationPresent(PostMapping.class)) {
+                        urlPattern = method.getAnnotation(PostMapping.class).value();
+                    } else {
+                        urlPattern = url; // fallback
+                    }
+
                     Map<String, String> pathVariables = extractPathVariables(urlPattern, url);
-                                    
+
                     for (int i = 0; i < params.length; i++) {
                         Parameter p = params[i];
                         Class<?> type = p.getType();
@@ -106,8 +132,8 @@ public class FrontServlet extends HttpServlet {
                     
                         args[i] = value;
                     }
-                    
-                    
+
+
                     // Appel de la méthode avec les arguments sécurisés
                     Object result = method.invoke(instance, args);
 
