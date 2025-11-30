@@ -3,6 +3,7 @@ package com.framework.core;
 
 import java.io.*;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.List;
 
 import com.framework.annotation.AnnotationScanner;
@@ -69,17 +70,28 @@ java.lang.reflect.Parameter[] params = method.getParameters();
 Object[] args = new Object[params.length];
 
 for (int i = 0; i < params.length; i++) {
-    String paramName = params[i].getName();        // nom réel de l’argument
-    String rawValue = req.getParameter(paramName); // valeur depuis GET/POST
-    Class<?> type = params[i].getType();
+    Parameter p = params[i];
+
+    String key = null;
+
+    // 1️⃣ Si le paramètre est annoté avec @RequestParam, prendre la clé de l'annotation
+    if (p.isAnnotationPresent(com.framework.annotation.RequestParam.class)) {
+        com.framework.annotation.RequestParam rp = p.getAnnotation(com.framework.annotation.RequestParam.class);
+        key = rp.value();
+    } else {
+        // sinon, tu peux continuer à utiliser le nom du paramètre Java
+        key = p.getName();
+    }
+
+    String rawValue = req.getParameter(key);
+    Class<?> type = p.getType();
 
     if (rawValue == null || rawValue.isEmpty()) {
-        // Valeur par défaut pour les primitifs
         if (type == int.class) args[i] = 0;
         else if (type == double.class) args[i] = 0.0;
         else if (type == float.class) args[i] = 0f;
         else if (type == boolean.class) args[i] = false;
-        else args[i] = null; // String ou Integer/Double/Boolean objets
+        else args[i] = null;
         continue;
     }
 
@@ -95,10 +107,10 @@ for (int i = 0; i < params.length; i++) {
         } else if (type == boolean.class || type == Boolean.class) {
             args[i] = Boolean.parseBoolean(rawValue);
         } else {
-            args[i] = null; // type non supporté pour l'instant
+            args[i] = null;
         }
     } catch (Exception e) {
-        // Si conversion échoue → valeur par défaut
+        // valeur par défaut si conversion échoue
         if (type == int.class || type == Integer.class) args[i] = 0;
         else if (type == double.class || type == Double.class) args[i] = 0.0;
         else if (type == float.class || type == Float.class) args[i] = 0f;
