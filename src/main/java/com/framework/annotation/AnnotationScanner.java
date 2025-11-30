@@ -5,7 +5,11 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.net.URL;
 
 public class AnnotationScanner {
@@ -44,14 +48,14 @@ public class AnnotationScanner {
 
     public static boolean matchUrl(String mapping, String url) {
         if (mapping == null || url == null) return false;
-    
+
         // enlever "/" final
         if (mapping.endsWith("/")) mapping = mapping.substring(0, mapping.length() - 1);
         if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-    
+
         String[] mapParts = mapping.split("/");
         String[] urlParts = url.split("/");
-    
+
         // 📌 Cas spécial sprint3-bis :
         // "/user" doit matcher "/user/45"
         if (mapParts.length == urlParts.length - 1) {
@@ -66,22 +70,22 @@ public class AnnotationScanner {
             }
             if (samePrefix) return true;
         }
-    
+
         // Si tailles différentes → pas match
         if (mapParts.length != urlParts.length) return false;
-    
+
         // comparaison segment par segment
         for (int i = 0; i < mapParts.length; i++) {
             String m = mapParts[i];
             String u = urlParts[i];
-        
+
             if (m.startsWith("{") && m.endsWith("}")) {
                 continue; // segment dynamique → accepté
             }
-        
+
             if (!m.equals(u)) return false;
         }
-    
+
         return true;
     }
 
@@ -125,6 +129,8 @@ public class AnnotationScanner {
 
         return bestMethod;
     }
+
+
 
 
 
