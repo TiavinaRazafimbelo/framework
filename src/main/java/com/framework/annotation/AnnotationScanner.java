@@ -93,42 +93,47 @@ public class AnnotationScanner {
 
 
 
-    public static Method findMethodByUrl(Class<?> clazz, Class<? extends Annotation> annotation, String url) {
+public static Method findMethodByUrl(Class<?> clazz, Class<? extends Annotation> annotation, String url) {
+    Method bestMethod = null;
+    boolean foundDynamic = false;
 
-        Method bestMethod = null;
-        boolean foundDynamic = false;
+    for (Method method : clazz.getDeclaredMethods()) {
+        if (!method.isAnnotationPresent(annotation)) continue;
 
-        for (Method method : clazz.getDeclaredMethods()) {
-            if (!method.isAnnotationPresent(annotation)) continue;
+        try {
+            Annotation ann = method.getAnnotation(annotation);
+            String mapping = null;
 
+            // Vérifier selon annotation
             try {
-                Annotation ann = method.getAnnotation(annotation);
-                Method urlMethod = annotation.getMethod("url");
-                String mapping = (String) urlMethod.invoke(ann);
-
-                // 🔍 vérifier si l'URL reçue correspond au mapping
-                if (matchUrl(mapping, url)) {
-
-                    boolean isDynamic = mapping.contains("{");
-
-                    // 📌 priorité au mapping dynamique
-                    if (isDynamic && !foundDynamic) {
-                        bestMethod = method;
-                        foundDynamic = true;
-                    }
-                    // 📌 sinon on prend un mapping simple si aucun autre trouvé
-                    else if (!foundDynamic && bestMethod == null) {
-                        bestMethod = method;
-                    }
+                mapping = (String) annotation.getMethod("url").invoke(ann); // pour @URL
+            } catch (NoSuchMethodException e1) {
+                try {
+                    mapping = (String) annotation.getMethod("value").invoke(ann); // pour @GetMapping/@PostMapping
+                } catch (NoSuchMethodException e2) {
+                    continue; // aucun mapping → ignorer
                 }
-
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }
 
-        return bestMethod;
+            // 🔍 vérifier si l'URL reçue correspond au mapping
+            if (matchUrl(mapping, url)) {
+                boolean isDynamic = mapping.contains("{");
+                if (isDynamic && !foundDynamic) {
+                    bestMethod = method;
+                    foundDynamic = true;
+                } else if (!foundDynamic && bestMethod == null) {
+                    bestMethod = method;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
+    return bestMethod;
+}
+
 
 
 
