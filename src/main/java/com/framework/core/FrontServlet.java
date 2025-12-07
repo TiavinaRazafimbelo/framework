@@ -90,14 +90,19 @@ public class FrontServlet extends HttpServlet {
                         Class<?> type = p.getType();
                         Object value = null;
 
-                        // 1️⃣ Support Map<String,String>
+                        // 1️⃣ Sprint 8 : support Map<String, Object>
                         if (Map.class.isAssignableFrom(type)) {
-                            Map<String, String> map = new HashMap<>();
+                            Map<String, Object> map = new HashMap<>();
                             req.getParameterMap().forEach((k, v) -> {
-                                if (v.length > 0) map.put(k, v[0]);
+                                if (v.length == 1) {
+                                    map.put(k, v[0]);       // 1 seule valeur → String
+                                } else {
+                                    map.put(k, v);          // plusieurs valeurs → String[]
+                                }
                             });
                             value = map;
                         }
+
                         // 2️⃣ Variables dynamiques {var}
                         else if (pathVariables.containsKey(p.getName())) {
                             value = convert(pathVariables.get(p.getName()), type);
