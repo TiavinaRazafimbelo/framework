@@ -115,7 +115,7 @@ public static Method findMethodByUrl(Class<?> clazz, Class<? extends Annotation>
                 }
             }
 
-            // 🔍 vérifier si l'URL reçue correspond au mapping
+            // vérifier si l'URL reçue correspond au mapping
             if (matchUrl(mapping, url)) {
                 boolean isDynamic = mapping.contains("{");
                 if (isDynamic && !foundDynamic) {
