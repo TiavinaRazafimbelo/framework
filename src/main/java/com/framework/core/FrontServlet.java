@@ -6,6 +6,9 @@ import java.util.*;
 import java.util.regex.*;
 
 import com.framework.annotation.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 
@@ -50,7 +53,7 @@ public class FrontServlet extends HttpServlet {
             try {
                 Object result = processControllerMethod(clazz, method, req, res, url);
 
-                if (result != null) handleReturn(result, req, res);
+                if (result != null) handleReturn(result, req, res, method);
                 return;
 
             } catch (Exception e) {
@@ -187,26 +190,51 @@ public class FrontServlet extends HttpServlet {
         return "";
     }
 
-    private void handleReturn(Object result, HttpServletRequest req, HttpServletResponse res)
-            throws ServletException, IOException {
+    private void handleReturn(Object result, HttpServletRequest req, HttpServletResponse res, Method method)
+            throws IOException, ServletException {
 
-        if (result instanceof String) {
-            res.getWriter().print(result);
+        if (method.isAnnotationPresent(Json.class)) {
+            // Tout sauf ModelView → JSON
+            res.setContentType("application/json;charset=UTF-8");
+            res.setCharacterEncoding("UTF-8");
+
+            Map<String, Object> responseMap = new LinkedHashMap<>();
+            responseMap.put("status", "success");
+            responseMap.put("code", 200);
+
+            if (result instanceof List) {
+                List<?> list = (List<?>) result;
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("count", list.size());
+                data.put("result", list);
+                responseMap.put("data", data);
+            } else {
+                responseMap.put("data", result);
+            }
+
+            Gson gson = new GsonBuilder().serializeNulls().create();
+            res.getWriter().print(gson.toJson(responseMap));
+
             return;
         }
+
+        // Sinon traitement normal (ModelView ou String)
+        if (result instanceof String) {
+            res.getWriter().print(result);
+        } 
+        else if (result instanceof ModelView) {
 
         if (result instanceof ModelView) {
             ModelView mv = (ModelView) result;
 
             mv.getData().forEach(req::setAttribute);
-
-            req.getRequestDispatcher("/views/" + mv.getView())
-                    .forward(req, res);
-            return;
+            req.getRequestDispatcher("/views/" + mv.getView()).forward(req, res);
+ 
         }
-
-        res.getWriter().println(" Type de retour non supporte : " + result);
+            res.getWriter().println("Type de retour non supporte : " + result);
+        }
     }
+
 
     private void defaultServe(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
