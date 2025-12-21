@@ -10,8 +10,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
 
+@MultipartConfig
 public class FrontServlet extends HttpServlet {
 
     private RequestDispatcher defaultDispatcher;
@@ -106,21 +108,59 @@ public class FrontServlet extends HttpServlet {
 
 
     private Object[] resolveMethodArguments(Method method, HttpServletRequest req, String url) throws Exception {
-
         Parameter[] params = method.getParameters();
         Object[] args = new Object[params.length];
 
         String pattern = getUrlPattern(method);
         Map<String, String> pathVariables = extractPathVariables(pattern, url);
 
-        for (int i = 0; i < params.length; i++) {
+        boolean isMultipart = req.getContentType() != null &&
+                req.getContentType().toLowerCase().startsWith("multipart/");
 
+        Map<String, Part> partsMap = new HashMap<>();
+        Map<String, byte[]> bytesMap = new HashMap<>();
+
+        if (isMultipart) {
+            for (Part p : req.getParts()) {
+                partsMap.put(p.getName(), p);
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                try (InputStream is = p.getInputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = is.read(buffer)) > 0) {
+                        baos.write(buffer, 0, len);
+                    }
+                }
+                bytesMap.put(p.getName(), baos.toByteArray());
+            }
+        }
+
+        for (int i = 0; i < params.length; i++) {
             Parameter p = params[i];
             Class<?> type = p.getType();
             Object value = null;
 
             if (Map.class.isAssignableFrom(type)) {
+                // Injection automatique de Map<String,Object>
                 value = buildMapParam(req);
+            }
+            else if (type == Part.class && isMultipart) {
+                value = partsMap.get(p.getName());
+            }
+            else if (type == Part[].class && isMultipart) {
+                // Tous les parts qui commencent par ce nom
+                List<Part> list = new ArrayList<>();
+                for (String key : partsMap.keySet()) {
+                    if (key.equals(p.getName()) || key.startsWith(p.getName() + "[")) {
+                        list.add(partsMap.get(key));
+                    }
+                }
+                value = list.toArray(new Part[0]);
+            }
+            else if (type == Map.class && isMultipart) {
+                // Map<nomFichier, byte[]>
+                value = bytesMap;
             }
             else if (pathVariables.containsKey(p.getName())) {
                 value = convert(pathVariables.get(p.getName()), type);
@@ -130,7 +170,6 @@ public class FrontServlet extends HttpServlet {
                         p.getAnnotation(RequestParam.class).value()), type);
             }
             else if (type.isArray()) {
-                // Gestion des tableaux (ex : Employee[])
                 Class<?> componentType = type.getComponentType();
                 int maxIndex = detectMaxIndex(p.getName(), req.getParameterMap());
                 Object array = Array.newInstance(componentType, maxIndex + 1);
@@ -146,7 +185,6 @@ public class FrontServlet extends HttpServlet {
                 value = DataBinder.bindComplexObject(type, p.getName(), req.getParameterMap());
             }
             else {
-                // Récupération générique depuis les paramètres POST
                 String param = req.getParameter(p.getName());
                 if (param != null) value = convert(param, type);
             }
@@ -154,8 +192,10 @@ public class FrontServlet extends HttpServlet {
             if (value == null) value = defaultValue(type);
             args[i] = value;
         }
+
         return args;
     }
+
 
     /** Détecte le plus grand index présent dans paramMap pour un tableau donné */
     private int detectMaxIndex(String paramName, Map<String, String[]> paramMap) {
