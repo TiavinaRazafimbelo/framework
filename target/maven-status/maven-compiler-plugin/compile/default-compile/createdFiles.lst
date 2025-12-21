@@ -9,3 +9,4 @@ com\framework\annotation\Json.class
 com\framework\annotation\URL.class
 com\framework\core\FrontServlet.class
 com\framework\annotation\AnnotationScanner.class
+com\framework\core\ControllerResult.class
