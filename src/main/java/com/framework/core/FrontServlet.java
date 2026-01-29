@@ -196,6 +196,10 @@ public class FrontServlet extends HttpServlet {
                     Array.set(array, j, element);
                 }
                 value = array;
+            } // ================= SESSION =================
+            else if (type == FrameworkSession.class) {
+                HttpSession httpSession = req.getSession(true);
+                value = new FrameworkSession(httpSession);
             } else if (isComplexObject(type)) {
                 value = DataBinder.bindComplexObject(type, p.getName(), req.getParameterMap());
             } else {
