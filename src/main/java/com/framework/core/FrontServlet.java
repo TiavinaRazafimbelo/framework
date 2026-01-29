@@ -52,7 +52,15 @@ public class FrontServlet extends HttpServlet {
 
             found = true;
 
+
             try {
+                // 🔐 CHECK AUTH
+                if (!checkAuthorization(method, req)) {
+                    res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    res.getWriter().println("Accès refusé");
+                    return;
+                }
+
                 ControllerResult cr = processControllerMethod(clazz, method, req, res, url);
                 handleReturn(cr, req, res, method);
 
@@ -105,6 +113,40 @@ public class FrontServlet extends HttpServlet {
 
         return new ControllerResult(result, args);
     }
+
+
+
+    private boolean checkAuthorization(Method method, HttpServletRequest req) {
+
+        if (!method.isAnnotationPresent(Auth.class))
+            return true; // accès libre
+
+        Auth auth = method.getAnnotation(Auth.class);
+        HttpSession session = req.getSession(false);
+
+        String authKey = getServletContext().getInitParameter("auth.session.key");
+        String roleKey = getServletContext().getInitParameter("role.session.key");
+
+        // Cas 2 et 3 : authentification requise
+        if (auth.authenticated()) {
+            if (session == null) return false;
+
+            Object isAuth = session.getAttribute(authKey);
+            if (!(isAuth instanceof Boolean) || !((Boolean) isAuth))
+                return false;
+        }
+
+        // Cas 3 : rôle requis
+        if (!auth.role().isEmpty()) {
+            Object role = session.getAttribute(roleKey);
+            if (role == null || !auth.role().equals(role.toString()))
+                return false;
+        }
+
+        return true;
+    }
+
+
 
 
     private Object[] resolveMethodArguments(Method method, HttpServletRequest req, String url) throws Exception {
