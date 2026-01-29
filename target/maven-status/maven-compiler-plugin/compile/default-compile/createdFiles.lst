@@ -8,6 +8,7 @@ com\framework\core\FrontServlet.class
 com\framework\annotation\AnnotationScanner.class
 com\framework\annotation\Controller.class
 com\framework\annotation\RequestParam.class
+com\framework\annotation\Auth.class
 com\framework\core\DataBinder.class
 com\framework\annotation\Json.class
 com\framework\core\ControllerResult.class
